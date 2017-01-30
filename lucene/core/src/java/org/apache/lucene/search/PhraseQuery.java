@@ -43,7 +43,7 @@ import org.apache.lucene.util.BytesRef;
 
 /** A Query that matches documents containing a particular sequence of terms.
  * A PhraseQuery is built by QueryParser for input like <code>"new york"</code>.
- * 
+ *
  * <p>This query may be combined with other terms or queries with a {@link BooleanQuery}.
  *
  * <p><b>NOTE</b>:
@@ -333,7 +333,7 @@ public class PhraseQuery extends Query {
       int result = 1;
       result = prime * result + position;
       for (int i=0; i<nTerms; i++) {
-        result = prime * result + terms[i].hashCode(); 
+        result = prime * result + terms[i].hashCode();
       }
       return result;
     }
@@ -368,12 +368,18 @@ public class PhraseQuery extends Query {
       this.needsScores = needsScores;
       this.similarity = searcher.getSimilarity(needsScores);
       final IndexReaderContext context = searcher.getTopReaderContext();
-      states = new TermContext[terms.length];
-      TermStatistics termStats[] = new TermStatistics[terms.length];
-      for (int i = 0; i < terms.length; i++) {
-        final Term term = terms[i];
-        states[i] = TermContext.build(context, term);
-        termStats[i] = searcher.termStatistics(term, states[i]);
+      TermStatistics[] termStats;
+      if (needsScores) {
+        termStats = new TermStatistics[terms.length];
+        states = new TermContext[terms.length];
+        for (int i = 0; i < terms.length; i++) {
+          final Term term = terms[i];
+          states[i] = TermContext.build(context, term);
+          termStats[i] = searcher.termStatistics(term, states[i]);
+        }
+      } else {
+        states = null;
+        termStats = new TermStatistics[0];
       }
       stats = similarity.computeWeight(searcher.collectionStatistics(field), termStats);
     }
@@ -414,10 +420,15 @@ public class PhraseQuery extends Query {
       // Reuse single TermsEnum below:
       final TermsEnum te = fieldTerms.iterator();
       float totalMatchCost = 0;
-      
+
       for (int i = 0; i < terms.length; i++) {
         final Term t = terms[i];
-        final TermState state = states[i].get(context.ord);
+        final TermState state;
+        if(states == null) {
+          state = TermContext.getTermState(context, t);
+        } else {
+          state = states[i].get(context.ord);
+        }
         if (state == null) { /* term doesnt exist in this segment */
           assert termNotInReader(reader, t): "no termstate found but term exists in reader";
           return null;
@@ -443,7 +454,7 @@ public class PhraseQuery extends Query {
                                         needsScores, totalMatchCost);
       }
     }
-    
+
     // only called from assert
     private boolean termNotInReader(LeafReader reader, Term term) throws IOException {
       return reader.docFreq(term) == 0;
@@ -465,7 +476,7 @@ public class PhraseQuery extends Query {
               scoreExplanation);
         }
       }
-      
+
       return Explanation.noMatch("no matching term");
     }
   }
@@ -565,10 +576,10 @@ public class PhraseQuery extends Query {
     return sameClassAs(other) &&
            equalsTo(getClass().cast(other));
   }
-  
+
   private boolean equalsTo(PhraseQuery other) {
-    return slop == other.slop && 
-           Arrays.equals(terms, other.terms) && 
+    return slop == other.slop &&
+           Arrays.equals(terms, other.terms) &&
            Arrays.equals(positions, other.positions);
   }
 
