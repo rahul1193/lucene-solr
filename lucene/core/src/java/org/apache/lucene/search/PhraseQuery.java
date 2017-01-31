@@ -369,6 +369,7 @@ public class PhraseQuery extends Query {
       this.similarity = searcher.getSimilarity(needsScores);
       final IndexReaderContext context = searcher.getTopReaderContext();
       TermStatistics[] termStats;
+      CollectionStatistics collectionStatistics;
       if (needsScores) {
         termStats = new TermStatistics[terms.length];
         states = new TermContext[terms.length];
@@ -377,11 +378,13 @@ public class PhraseQuery extends Query {
           states[i] = TermContext.build(context, term);
           termStats[i] = searcher.termStatistics(term, states[i]);
         }
+        collectionStatistics = searcher.collectionStatistics(field);
       } else {
         states = null;
         termStats = new TermStatistics[0];
+        collectionStatistics = null;
       }
-      stats = similarity.computeWeight(searcher.collectionStatistics(field), termStats);
+      stats = similarity.computeWeight(collectionStatistics, termStats);
     }
 
     @Override
