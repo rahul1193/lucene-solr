@@ -77,6 +77,35 @@ import org.apache.lucene.util.ThreadInterruptedException;
  */
 public class IndexSearcher {
 
+    private static final Similarity.SimWeight NON_SCORING_SIM_WEIGHT = new Similarity.SimWeight() {
+
+      @Override
+      public float getValueForNormalization() {
+        return 1f;
+      }
+
+      @Override
+      public void normalize(float queryNorm, float boost) {}
+    };
+
+    private static final Similarity.SimScorer NON_SCORING_SIM_SCORER = new Similarity.SimScorer() {
+
+      @Override
+      public float score(int doc, float freq) {
+        return 0f;
+      }
+
+      @Override
+      public float computeSlopFactor(int distance) {
+        return 1f;
+      }
+
+      @Override
+      public float computePayloadFactor(int doc, int start, int end, BytesRef payload) {
+        return 1f;
+      }
+    };
+
   /** A search-time {@link Similarity} that does not make use of scoring factors
    *  and may be used when scores are not needed. */
   private static final Similarity NON_SCORING_SIMILARITY = new Similarity() {
@@ -88,39 +117,12 @@ public class IndexSearcher {
 
     @Override
     public SimWeight computeWeight(CollectionStatistics collectionStats, TermStatistics... termStats) {
-      return new SimWeight() {
-
-        @Override
-        public float getValueForNormalization() {
-          return 1f;
-        }
-
-        @Override
-        public void normalize(float queryNorm, float boost) {}
-
-      };
+      return NON_SCORING_SIM_WEIGHT;
     }
 
     @Override
     public SimScorer simScorer(SimWeight weight, LeafReaderContext context) throws IOException {
-      return new SimScorer() {
-
-        @Override
-        public float score(int doc, float freq) {
-          return 0f;
-        }
-
-        @Override
-        public float computeSlopFactor(int distance) {
-          return 1f;
-        }
-
-        @Override
-        public float computePayloadFactor(int doc, int start, int end, BytesRef payload) {
-          return 1f;
-        }
-
-      };
+      return NON_SCORING_SIM_SCORER;
     }
 
   };
