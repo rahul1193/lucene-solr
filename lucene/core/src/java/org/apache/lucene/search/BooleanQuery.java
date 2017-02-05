@@ -77,6 +77,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     private boolean disableCoord;
     private int minimumNumberShouldMatch;
     private final List<BooleanClause> clauses = new ArrayList<>();
+    private String cacheKey;
 
     /** Sole constructor. */
     public Builder() {}
@@ -115,6 +116,15 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     }
 
     /**
+     * Specifies a cache key that can be used for easier cache store and lookup
+     * @param cacheKey the cache key to uniquely identify the {@link BooleanQuery}
+     */
+    public Builder cache(String cacheKey) {
+      this.cacheKey = cacheKey;
+      return this;
+    }
+
+    /**
      * Add a new clause to this {@link Builder}. Note that the order in which
      * clauses are added does not have any impact on matching documents or query
      * performance.
@@ -141,7 +151,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     /** Create a new {@link BooleanQuery} based on the parameters that have
      *  been set on this builder. */
     public BooleanQuery build() {
-      return new BooleanQuery(disableCoord, minimumNumberShouldMatch, clauses.toArray(new BooleanClause[0]));
+      return new BooleanQuery(disableCoord, minimumNumberShouldMatch, clauses.toArray(new BooleanClause[0]), cacheKey);
     }
 
   }
@@ -150,9 +160,10 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
   private final int minimumNumberShouldMatch;
   private final List<BooleanClause> clauses;              // used for toString() and getClauses()
   private final Map<Occur, Collection<Query>> clauseSets; // used for equals/hashcode
+  private final String cacheKey;
 
   private BooleanQuery(boolean disableCoord, int minimumNumberShouldMatch,
-      BooleanClause[] clauses) {
+      BooleanClause[] clauses, String cacheKey) {
     this.disableCoord = disableCoord;
     this.minimumNumberShouldMatch = minimumNumberShouldMatch;
     this.clauses = Collections.unmodifiableList(Arrays.asList(clauses));
@@ -166,6 +177,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     for (BooleanClause clause : clauses) {
       clauseSets.get(clause.getOccur()).add(clause.getQuery());
     }
+    this.cacheKey = cacheKey;
   }
 
   /**
@@ -193,6 +205,13 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     return clauseSets.get(occur);
   }
 
+  /**
+   * Return the cache key for this boolean query
+   */
+  public String getCacheKey() {
+    return cacheKey;
+  }
+
   /** Returns an iterator on the clauses in this query. It implements the {@link Iterable} interface to
    * make it possible to do:
    * <pre class="prettyprint">for (BooleanClause clause : booleanQuery) {}</pre>
@@ -213,6 +232,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
         newQuery.add(clause);
       }
     }
+    newQuery.cache(cacheKey);
     return newQuery.build();
   }
 
@@ -259,6 +279,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
       BooleanQuery.Builder builder = new BooleanQuery.Builder();
       builder.setDisableCoord(isCoordDisabled());
       builder.setMinimumNumberShouldMatch(getMinimumNumberShouldMatch());
+      builder.cache(cacheKey);
       boolean actuallyRewritten = false;
       for (BooleanClause clause : this) {
         Query query = clause.getQuery();
@@ -285,6 +306,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
         BooleanQuery.Builder rewritten = new BooleanQuery.Builder();
         rewritten.setDisableCoord(disableCoord);
         rewritten.setMinimumNumberShouldMatch(minimumNumberShouldMatch);
+        rewritten.cache(cacheKey);
         for (Map.Entry<Occur, Collection<Query>> entry : clauseSets.entrySet()) {
           final Occur occur = entry.getKey();
           for (Query query : entry.getValue()) {
@@ -305,6 +327,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         builder.setDisableCoord(isCoordDisabled());
         builder.setMinimumNumberShouldMatch(getMinimumNumberShouldMatch());
+        builder.cache(cacheKey);
         for (BooleanClause clause : clauses) {
           if (clause.getOccur() != Occur.FILTER) {
             builder.add(clause);
@@ -356,7 +379,8 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
           builder = new BooleanQuery.Builder()
             .setDisableCoord(isCoordDisabled())
             .setMinimumNumberShouldMatch(getMinimumNumberShouldMatch())
-            .add(rewritten, Occur.MUST);
+            .add(rewritten, Occur.MUST)
+            .cache(cacheKey);
           for (Query query : clauseSets.get(Occur.SHOULD)) {
             builder.add(query, Occur.SHOULD);
           }
