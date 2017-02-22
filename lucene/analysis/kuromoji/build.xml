@@ -34,7 +34,7 @@
 
   <!-- default configuration: uses mecab-ipadic -->
   <property name="ipadic.type" value="ipadic"/>
-  <property name="ipadic.version" value="mecab-ipadic-2.7.0-20070801" />
+  <property name="ipadic.version" value="mecab-ipadic-2.7.0-20070801-neologd-20170202" />
 
   <!-- alternative configuration: uses mecab-naist-jdic
   <property name="ipadic.type" value="naist"/>
@@ -43,7 +43,7 @@
   
   <property name="dict.src.file" value="${ipadic.version}.tar.gz" />
   <property name="dict.src.dir" value="${build.dir}/${ipadic.version}" />
-  <property name="dict.encoding" value="euc-jp"/>
+  <property name="dict.encoding" value="utf-8"/>
   <property name="dict.format" value="ipadic"/>
   <property name="dict.normalize" value="false"/>
   <property name="dict.target.dir" location="${resources.dir}"/>
@@ -81,13 +81,13 @@
     <pathelement location="${build.dir}/classes/tools-test"/>
   </path>
 
-  <target name="build-dict" depends="compile-tools, download-dict">
+  <target name="build-dict" depends="compile-tools">
     <sequential>
       <delete verbose="true">
         <fileset dir="${resources.dir}/org/apache/lucene/analysis/ja/dict" includes="**/*"/>
       </delete>
       <!-- TODO: optimize the dictionary construction a bit so that you don't need 1G -->
-      <java fork="true" failonerror="true" maxmemory="1g" classname="org.apache.lucene.analysis.ja.util.DictionaryBuilder">
+      <java fork="true" failonerror="true" maxmemory="8g" classname="org.apache.lucene.analysis.ja.util.DictionaryBuilder">
         <classpath>
           <path refid="tools.classpath"/>
         </classpath>
