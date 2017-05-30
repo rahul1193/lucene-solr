@@ -252,7 +252,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     }
     
     // optimize 1-clause queries
-    if (clauses.size() == 1) {
+    if (clauses.size() == 1 && (cacheKey == null || cacheKey.length() == 0)) {
       BooleanClause c = clauses.get(0);
       Query query = c.getQuery();
       if (minimumNumberShouldMatch == 1 && c.getOccur() == Occur.SHOULD) {

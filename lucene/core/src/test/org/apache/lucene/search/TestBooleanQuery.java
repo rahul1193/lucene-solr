@@ -483,6 +483,33 @@ public class TestBooleanQuery extends LuceneTestCase {
     return set;
   }
 
+  public void testBoolSingleNoRewrite() throws IOException {
+    Directory dir = newDirectory();
+    RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+    Document doc = new Document();
+    Field f = newTextField("field", "a b c d", Field.Store.NO);
+    doc.add(f);
+    w.addDocument(doc);
+    f.setStringValue("b d");
+    w.addDocument(doc);
+    f.setStringValue("d");
+    w.addDocument(doc);
+    w.commit();
+
+    DirectoryReader reader = w.getReader();
+    final IndexSearcher searcher = new IndexSearcher(reader);
+    final BooleanQuery.Builder bq = new BooleanQuery.Builder();
+    bq.add(new TermQuery(new Term("field", "d")), Occur.MUST);
+    bq.cache("test_cache_key");
+    Query original = bq.build();
+    Query rewrite = searcher.rewrite(original);
+    assertEquals(original, rewrite);
+
+    reader.close();
+    w.close();
+    dir.close();
+  }
+
   public void testFILTERClauseBehavesLikeMUST() throws IOException {
     Directory dir = newDirectory();
     RandomIndexWriter w = new RandomIndexWriter(random(), dir);
