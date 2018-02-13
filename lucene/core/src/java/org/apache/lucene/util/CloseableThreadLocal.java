@@ -114,6 +114,15 @@ public class CloseableThreadLocal<T> implements Closeable {
     maybePurge();
   }
 
+  public void remove() {
+    writeLock.lock();
+    try {
+      hardRefs.remove(Thread.currentThread());
+    } finally {
+      writeLock.unlock();
+    }
+  }
+
   private void maybePurge() {
     if (countUntilPurge.getAndDecrement() == 0) {
       purge();
