@@ -18,11 +18,11 @@ package org.apache.lucene.util;
 
 
 import java.io.Closeable;
-import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /** Java's builtin ThreadLocal has a serious flaw:
  *  it can take an arbitrarily long amount of time to
@@ -55,12 +55,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CloseableThreadLocal<T> implements Closeable {
 
-  private ThreadLocal<WeakReference<T>> t = new ThreadLocal<>();
+  private final ReentrantReadWriteLock.WriteLock writeLock;
+  private final ReentrantReadWriteLock.ReadLock readLock;
+
 
   // Use a WeakHashMap so that if a Thread exits and is
   // GC'able, its entry may be removed:
-  private Map<Thread,T> hardRefs = new WeakHashMap<>();
-  
+  private Map<Thread, T> hardRefs = new WeakHashMap<>();
+
   // Increase this to decrease frequency of purging in get:
   private static int PURGE_MULTIPLIER = 20;
 
@@ -70,13 +72,25 @@ public class CloseableThreadLocal<T> implements Closeable {
   // amortized cost of purging linear.
   private final AtomicInteger countUntilPurge = new AtomicInteger(PURGE_MULTIPLIER);
 
+  public CloseableThreadLocal() {
+    ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    writeLock = readWriteLock.writeLock();
+    readLock = readWriteLock.readLock();
+  }
+
   protected T initialValue() {
     return null;
   }
-  
+
   public T get() {
-    WeakReference<T> weakRef = t.get();
-    if (weakRef == null) {
+    T value = null;
+    readLock.lock();
+    try {
+      value = hardRefs.get(Thread.currentThread());
+    } finally {
+      readLock.unlock();
+    }
+    if (value == null) {
       T iv = initialValue();
       if (iv != null) {
         set(iv);
@@ -86,18 +100,18 @@ public class CloseableThreadLocal<T> implements Closeable {
       }
     } else {
       maybePurge();
-      return weakRef.get();
+      return value;
     }
   }
 
   public void set(T object) {
-
-    t.set(new WeakReference<>(object));
-
-    synchronized(hardRefs) {
+    writeLock.lock();
+    try {
       hardRefs.put(Thread.currentThread(), object);
-      maybePurge();
+    } finally {
+      writeLock.unlock();
     }
+    maybePurge();
   }
 
   private void maybePurge() {
@@ -108,9 +122,10 @@ public class CloseableThreadLocal<T> implements Closeable {
 
   // Purge dead threads
   private void purge() {
-    synchronized(hardRefs) {
+    writeLock.lock();
+    try {
       int stillAliveCount = 0;
-      for (Iterator<Thread> it = hardRefs.keySet().iterator(); it.hasNext();) {
+      for (Iterator<Thread> it = hardRefs.keySet().iterator(); it.hasNext(); ) {
         final Thread t = it.next();
         if (!t.isAlive()) {
           it.remove();
@@ -118,13 +133,14 @@ public class CloseableThreadLocal<T> implements Closeable {
           stillAliveCount++;
         }
       }
-      int nextCount = (1+stillAliveCount) * PURGE_MULTIPLIER;
+      int nextCount = (1 + stillAliveCount) * PURGE_MULTIPLIER;
       if (nextCount <= 0) {
         // defensive: int overflow!
         nextCount = 1000000;
       }
-      
       countUntilPurge.set(nextCount);
+    } finally {
+      writeLock.unlock();
     }
   }
 
@@ -134,11 +150,5 @@ public class CloseableThreadLocal<T> implements Closeable {
     // all values we were storing are weak (unless somewhere
     // else is still using them) and so GC may reclaim them:
     hardRefs = null;
-    // Take care of the current thread right now; others will be
-    // taken care of via the WeakReferences.
-    if (t != null) {
-      t.remove();
-    }
-    t = null;
   }
 }
