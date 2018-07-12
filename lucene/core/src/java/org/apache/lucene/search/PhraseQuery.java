@@ -369,13 +369,22 @@ public class PhraseQuery extends Query {
       this.similarity = searcher.getSimilarity(needsScores);
       final IndexReaderContext context = searcher.getTopReaderContext();
       states = new TermContext[terms.length];
-      TermStatistics termStats[] = new TermStatistics[terms.length];
-      for (int i = 0; i < terms.length; i++) {
-        final Term term = terms[i];
-        states[i] = TermContext.build(context, term);
-        termStats[i] = searcher.termStatistics(term, states[i]);
+      TermStatistics[] termStats;
+      CollectionStatistics collectionStatistics;
+      if(needsScores){
+        termStats = new TermStatistics[terms.length];
+        for (int i = 0; i < terms.length; i++) {
+          final Term term = terms[i];
+          states[i] = TermContext.build(context, term);
+          termStats[i] = searcher.termStatistics(term, states[i]);
+        }
+        collectionStatistics = searcher.collectionStatistics(field);
+      } else {
+        states = null;
+        termStats = new TermStatistics[0];
+        collectionStatistics = null;
       }
-      stats = similarity.computeWeight(boost, searcher.collectionStatistics(field), termStats);
+      stats = similarity.computeWeight(boost, collectionStatistics, termStats);
     }
 
     @Override
@@ -407,7 +416,12 @@ public class PhraseQuery extends Query {
       
       for (int i = 0; i < terms.length; i++) {
         final Term t = terms[i];
-        final TermState state = states[i].get(context.ord);
+        final TermState state;
+        if(states == null) {
+          state = TermContext.getTermState(context, t);
+        } else {
+          state = states[i].get(context.ord);
+        }
         if (state == null) { /* term doesnt exist in this segment */
           assert termNotInReader(reader, t): "no termstate found but term exists in reader";
           return null;
