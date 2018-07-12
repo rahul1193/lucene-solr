@@ -74,6 +74,10 @@ public interface StandardSyntaxParserConstants {
   int RANGE_QUOTED = 32;
   /** RegularExpression Id. */
   int RANGE_GOOP = 33;
+  /** RegularExpression Id. */
+  int NEAR=34;
+  /** RegularExpression Id. */
+  int ONEAR = 35;
 
   /** Lexical state. */
   int Boost = 0;
