@@ -108,7 +108,6 @@ public final class TermContext {
 
   public static TermState getTermState(LeafReaderContext context, Term term) throws IOException {
     assert context != null;
-    assert !context.isTopLevel;
     final String field = term.field();
     final BytesRef bytes = term.bytes();
     final Terms terms = context.reader().terms(field);
