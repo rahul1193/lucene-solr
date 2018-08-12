@@ -17,7 +17,7 @@
     limitations under the License.
  -->
 
-<project name="analyzers-kuromoji" default="default" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="analyzers-kuromoji-ipadic-neologd" default="default" xmlns:ivy="antlib:org.apache.ivy.ant">
 
   <description>
     Japanese Morphological Analyzer
@@ -87,7 +87,7 @@
         <fileset dir="${resources.dir}/org/apache/lucene/analysis/ja/dict" includes="**/*"/>
       </delete>
       <!-- TODO: optimize the dictionary construction a bit so that you don't need 1G -->
-      <java fork="true" failonerror="true" maxmemory="1g" classname="org.apache.lucene.analysis.ja.util.DictionaryBuilder">
+      <java fork="true" failonerror="true" maxmemory="5g" classname="org.apache.lucene.analysis.ja.util.DictionaryBuilder">
         <classpath>
           <path refid="tools.classpath"/>
         </classpath>
