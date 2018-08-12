@@ -1594,8 +1594,16 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
     return updateDocument(term == null ? null : DocumentsWriterDeleteQueue.newNode(term), doc);
   }
 
+  public long updateDocument(Term term, Iterable<? extends IndexableField> doc, Analyzer analyzer) throws IOException {
+    return updateDocument(term == null ? null : DocumentsWriterDeleteQueue.newNode(term), doc, analyzer);
+  }
+
   private long updateDocument(final DocumentsWriterDeleteQueue.Node<?> delNode,
                               Iterable<? extends IndexableField> doc) throws IOException {
+    return updateDocument(delNode, doc, analyzer);
+  }
+
+  private long updateDocument(final DocumentsWriterDeleteQueue.Node<?> delNode, Iterable<? extends IndexableField> doc, Analyzer analyzer) throws IOException {
     ensureOpen();
     boolean success = false;
     try {
