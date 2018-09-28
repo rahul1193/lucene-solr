@@ -42,7 +42,7 @@ import org.apache.lucene.util.BytesRef;
 
 /** A Query that matches documents containing a particular sequence of terms.
  * A PhraseQuery is built by QueryParser for input like <code>"new york"</code>.
- * 
+ *
  * <p>This query may be combined with other terms or queries with a {@link BooleanQuery}.
  *
  * <p><b>NOTE</b>:
@@ -332,7 +332,7 @@ public class PhraseQuery extends Query {
       int result = 1;
       result = prime * result + position;
       for (int i=0; i<nTerms; i++) {
-        result = prime * result + terms[i].hashCode(); 
+        result = prime * result + terms[i].hashCode();
       }
       return result;
     }
@@ -388,7 +388,7 @@ public class PhraseQuery extends Query {
   public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
     return new PhraseWeight(this, field, searcher, needsScores) {
 
-      private transient TermContext states[];
+      private transient TermContext states[] = null;
 
       @Override
       protected Similarity.SimWeight getStats(IndexSearcher searcher) throws IOException {
@@ -399,13 +399,15 @@ public class PhraseQuery extends Query {
           throw new IllegalStateException("PhraseWeight requires that the first position is 0, call rewrite first");
         }
         final IndexReaderContext context = searcher.getTopReaderContext();
-        states = new TermContext[terms.length];
         TermStatistics termStats[] = null;
         int termUpTo = 0;
         for (int i = 0; i < terms.length; i++) {
           final Term term = terms[i];
-          states[i] = TermContext.build(context, term);
           if (needsScores) {
+            if (states == null) {
+              states = new TermContext[terms.length];
+            }
+            states[i] = TermContext.build(context, term);
             TermStatistics termStatistics = searcher.termStatistics(term, states[i]);
             if (termStatistics != null) {
               // lazy initialization of termStats for scoring case
@@ -444,7 +446,7 @@ public class PhraseQuery extends Query {
 
         for (int i = 0; i < terms.length; i++) {
           final Term t = terms[i];
-          final TermState state = states[i].get(context.ord);
+          final TermState state = states == null ? TermContext.getTermState(context, t) : states[i].get(context.ord);
           if (state == null) { /* term doesnt exist in this segment */
             assert termNotInReader(reader, t): "no termstate found but term exists in reader";
             return null;
@@ -531,10 +533,10 @@ public class PhraseQuery extends Query {
     return sameClassAs(other) &&
            equalsTo(getClass().cast(other));
   }
-  
+
   private boolean equalsTo(PhraseQuery other) {
-    return slop == other.slop && 
-           Arrays.equals(terms, other.terms) && 
+    return slop == other.slop &&
+           Arrays.equals(terms, other.terms) &&
            Arrays.equals(positions, other.positions);
   }
 

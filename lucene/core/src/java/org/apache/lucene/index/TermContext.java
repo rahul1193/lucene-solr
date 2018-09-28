@@ -194,4 +194,18 @@ public final class TermContext {
 
     return sb.toString();
   }
+
+  public static TermState getTermState(LeafReaderContext context, Term term) throws IOException {
+    assert context != null;
+    final String field = term.field();
+    final BytesRef bytes = term.bytes();
+    final Terms terms = context.reader().terms(field);
+    if (terms != null) {
+      final TermsEnum termsEnum = terms.iterator();
+      if (termsEnum.seekExact(bytes)) {
+        return termsEnum.termState();
+      }
+    }
+    return null;
+  }
 }
