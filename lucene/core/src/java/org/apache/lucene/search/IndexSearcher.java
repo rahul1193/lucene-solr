@@ -88,29 +88,34 @@ public class IndexSearcher {
 
     @Override
     public SimWeight computeWeight(float boost, CollectionStatistics collectionStats, TermStatistics... termStats) {
-      return new SimWeight() {};
+      return NON_SCORING_SIM_WEIGHT;
     }
 
     @Override
     public SimScorer simScorer(SimWeight weight, LeafReaderContext context) throws IOException {
-      return new SimScorer() {
+      return NON_SCORING_SIM_SCORER;
+    }
 
-        @Override
-        public float score(int doc, float freq) {
-          return 0f;
-        }
+  };
 
-        @Override
-        public float computeSlopFactor(int distance) {
-          return 1f;
-        }
+  private static final Similarity.SimWeight NON_SCORING_SIM_WEIGHT = new Similarity.SimWeight() {
+  };
 
-        @Override
-        public float computePayloadFactor(int doc, int start, int end, BytesRef payload) {
-          return 1f;
-        }
+  private static final Similarity.SimScorer NON_SCORING_SIM_SCORER = new Similarity.SimScorer() {
 
-      };
+    @Override
+    public float score(int doc, float freq) {
+      return 0f;
+    }
+
+    @Override
+    public float computeSlopFactor(int distance) {
+      return 1f;
+    }
+
+    @Override
+    public float computePayloadFactor(int doc, int start, int end, BytesRef payload) {
+      return 1f;
     }
 
   };
