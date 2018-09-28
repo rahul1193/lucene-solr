@@ -400,7 +400,7 @@ public class PhraseQuery extends Query {
         }
         final IndexReaderContext context = searcher.getTopReaderContext();
         states = new TermContext[terms.length];
-        TermStatistics termStats[] = new TermStatistics[terms.length];
+        TermStatistics termStats[] = null;
         int termUpTo = 0;
         for (int i = 0; i < terms.length; i++) {
           final Term term = terms[i];
@@ -408,6 +408,10 @@ public class PhraseQuery extends Query {
           if (needsScores) {
             TermStatistics termStatistics = searcher.termStatistics(term, states[i]);
             if (termStatistics != null) {
+              // lazy initialization of termStats for scoring case
+              if (termStats == null) {
+                 termStats = new TermStatistics[terms.length];
+              }
               termStats[termUpTo++] = termStatistics;
             }
           }
