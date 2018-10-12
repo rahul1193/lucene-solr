@@ -1036,9 +1036,14 @@ final class Lucene70DocValuesProducer extends DocValuesProducer implements Close
         throw new IndexOutOfBoundsException();
       }
       final long blockIndex = ord >>> entry.termsDictBlockShift;
-      final long blockAddress = blockAddresses.get(blockIndex);
-      bytes.seek(blockAddress);
-      this.ord = (blockIndex << entry.termsDictBlockShift) - 1;
+      // we don't have to seek to block start on every seekExact
+      // seek to block start only if we are on a different block
+      // or the ordinal we are looking for is behind current ordinal in same block
+      if (blockIndex != this.ord >>> entry.termsDictBlockShift || ord < this.ord) {
+        final long blockAddress = blockAddresses.get(blockIndex);
+        bytes.seek(blockAddress);
+        this.ord = (blockIndex << entry.termsDictBlockShift) - 1;
+      }
       do {
         next();
       } while (this.ord < ord);
