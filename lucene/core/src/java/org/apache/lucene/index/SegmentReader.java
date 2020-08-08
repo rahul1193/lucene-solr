@@ -297,7 +297,7 @@ public final class SegmentReader extends CodecReader {
   private final Set<ClosedListener> readerClosedListeners = new CopyOnWriteArraySet<>();
 
   @Override
-  void notifyReaderClosedListeners() throws IOException {
+  protected void notifyReaderClosedListeners() throws IOException {
     synchronized(readerClosedListeners) {
       IOUtils.applyToAll(readerClosedListeners, l -> l.onClose(readerCacheHelper.getKey()));
     }

@@ -57,7 +57,7 @@ public final class OwnCacheKeyMultiReader extends MultiReader {
   }
 
   @Override
-  void notifyReaderClosedListeners() throws IOException {
+  protected void notifyReaderClosedListeners() throws IOException {
     synchronized(readerClosedListeners) {
       IOUtils.applyToAll(readerClosedListeners, l -> l.onClose(cacheHelper.getKey()));
     }

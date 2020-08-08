@@ -21,8 +21,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -52,6 +54,7 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.BytesRefHash;
 import org.apache.lucene.util.BytesRefHash.DirectBytesStartArray;
 import org.apache.lucene.util.Counter;
+import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.IntBlockPool;
 import org.apache.lucene.util.IntBlockPool.SliceReader;
 import org.apache.lucene.util.IntBlockPool.SliceWriter;
@@ -1141,6 +1144,22 @@ public class MemoryIndex {
    */
   private final class MemoryIndexReader extends LeafReader {
 
+    private final Set<ClosedListener> readerClosedListeners = Collections.synchronizedSet(new LinkedHashSet<>());
+
+    private final CacheKey cacheKey = new CacheKey();
+
+    private final CacheHelper readerCacheHelper = new CacheHelper() {
+      @Override
+      public CacheKey getKey() {
+        return cacheKey;
+      }
+
+      @Override
+      public void addClosedListener(ClosedListener listener) {
+        readerClosedListeners.add(listener);
+      }
+    };
+
     private final MemoryFields memoryFields = new MemoryFields(fields);
     private final FieldInfos fieldInfos;
 
@@ -1654,12 +1673,19 @@ public class MemoryIndex {
 
     @Override
     public CacheHelper getCoreCacheHelper() {
-      return null;
+      return readerCacheHelper;
     }
 
     @Override
     public CacheHelper getReaderCacheHelper() {
-      return null;
+      return readerCacheHelper;
+    }
+
+    @Override
+    protected void notifyReaderClosedListeners() throws IOException {
+      synchronized(readerClosedListeners) {
+        IOUtils.applyToAll(readerClosedListeners, l -> l.onClose(readerCacheHelper.getKey()));
+      }
     }
   }
 

@@ -112,7 +112,7 @@ public abstract class IndexReader implements Closeable {
 
   /** A cache key identifying a resource that is being cached on. */
   public static final class CacheKey {
-    CacheKey() {} // only instantiable by core impls
+    public CacheKey() {} // only instantiable by core impls
   }
 
   /**
@@ -141,7 +141,7 @@ public abstract class IndexReader implements Closeable {
   }
 
   // overridden by StandardDirectoryReader and SegmentReader
-  void notifyReaderClosedListeners() throws IOException {
+  protected void notifyReaderClosedListeners() throws IOException {
     // nothing to notify in the base impl
   }
 
