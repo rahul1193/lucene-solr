@@ -74,9 +74,15 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
 
     private int minimumNumberShouldMatch;
     private final List<BooleanClause> clauses = new ArrayList<>();
+    private boolean deDuplicateClauses = true;
 
     /** Sole constructor. */
     public Builder() {}
+
+    public Builder deDuplicateClauses(boolean deDuplicateClauses) {
+      this.deDuplicateClauses = deDuplicateClauses;
+      return this;
+    }
 
     /**
      * Specifies a minimum number of the optional BooleanClauses
@@ -130,7 +136,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     /** Create a new {@link BooleanQuery} based on the parameters that have
      *  been set on this builder. */
     public BooleanQuery build() {
-      return new BooleanQuery(minimumNumberShouldMatch, clauses.toArray(new BooleanClause[0]));
+      return new BooleanQuery(minimumNumberShouldMatch, clauses.toArray(new BooleanClause[0]), deDuplicateClauses);
     }
 
   }
@@ -138,18 +144,27 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
   private final int minimumNumberShouldMatch;
   private final List<BooleanClause> clauses;              // used for toString() and getClauses()
   private final Map<Occur, Collection<Query>> clauseSets; // used for equals/hashcode
+  private final boolean deDuplicateClauses;
 
   private BooleanQuery(int minimumNumberShouldMatch,
-      BooleanClause[] clauses) {
+      BooleanClause[] clauses, boolean deDuplicateClauses) {
     this.minimumNumberShouldMatch = minimumNumberShouldMatch;
+    this.deDuplicateClauses = deDuplicateClauses;
     this.clauses = Collections.unmodifiableList(Arrays.asList(clauses));
     clauseSets = new EnumMap<>(Occur.class);
-    // duplicates matter for SHOULD and MUST
-    clauseSets.put(Occur.SHOULD, new Multiset<>());
-    clauseSets.put(Occur.MUST, new Multiset<>());
-    // but not for FILTER and MUST_NOT
-    clauseSets.put(Occur.FILTER, new HashSet<>());
-    clauseSets.put(Occur.MUST_NOT, new HashSet<>());
+    if (deDuplicateClauses) {
+      // duplicates matter for SHOULD and MUST
+      clauseSets.put(Occur.SHOULD, new Multiset<>());
+      clauseSets.put(Occur.MUST, new Multiset<>());
+      // but not for FILTER and MUST_NOT
+      clauseSets.put(Occur.FILTER, new HashSet<>());
+      clauseSets.put(Occur.MUST_NOT, new HashSet<>());
+    } else {
+      clauseSets.put(Occur.SHOULD, new ArrayList<>());
+      clauseSets.put(Occur.MUST, new ArrayList<>());
+      clauseSets.put(Occur.FILTER, new ArrayList<>());
+      clauseSets.put(Occur.MUST_NOT, new ArrayList<>());
+    }
     for (BooleanClause clause : clauses) {
       clauseSets.get(clause.getOccur()).add(clause.getQuery());
     }
@@ -161,6 +176,10 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
    */
   public int getMinimumNumberShouldMatch() {
     return minimumNumberShouldMatch;
+  }
+
+  public boolean deDuplicateClauses() {
+    return deDuplicateClauses;
   }
 
   /** Return a list of the clauses of this {@link BooleanQuery}. */
@@ -199,7 +218,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
       return this;
     }
     BooleanQuery.Builder newQuery = new BooleanQuery.Builder();
-
+    newQuery.deDuplicateClauses(deDuplicateClauses());
     newQuery.setMinimumNumberShouldMatch(getMinimumNumberShouldMatch());
     for (BooleanClause clause : clauses) {
       switch (clause.getOccur()) {
@@ -236,7 +255,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     if (clauses.size() == 0) {
       return new MatchNoDocsQuery("empty BooleanQuery");
     }
-    
+
     // optimize 1-clause queries
     if (clauses.size() == 1) {
       BooleanClause c = clauses.get(0);
@@ -264,6 +283,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
     {
       BooleanQuery.Builder builder = new BooleanQuery.Builder();
       builder.setMinimumNumberShouldMatch(getMinimumNumberShouldMatch());
+      builder.deDuplicateClauses(deDuplicateClauses());
       boolean actuallyRewritten = false;
       for (BooleanClause clause : this) {
         Query query = clause.getQuery();
@@ -292,6 +312,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
         // since clauseSets implicitly deduplicates FILTER and MUST_NOT
         // clauses, this means there were duplicates
         BooleanQuery.Builder rewritten = new BooleanQuery.Builder();
+        rewritten.deDuplicateClauses(deDuplicateClauses());
         rewritten.setMinimumNumberShouldMatch(minimumNumberShouldMatch);
         for (Map.Entry<Occur, Collection<Query>> entry : clauseSets.entrySet()) {
           final Occur occur = entry.getKey();
@@ -326,6 +347,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
       if (modified) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         builder.setMinimumNumberShouldMatch(getMinimumNumberShouldMatch());
+        builder.deDuplicateClauses(deDuplicateClauses());
         for (BooleanClause clause : clauses) {
           if (clause.getOccur() != Occur.FILTER) {
             builder.add(clause);
@@ -348,6 +370,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
 
       if (intersection.isEmpty() == false) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.deDuplicateClauses(deDuplicateClauses());
         int minShouldMatch = getMinimumNumberShouldMatch();
 
         for (BooleanClause clause : clauses) {
@@ -380,6 +403,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
       }
       if (shouldClauses.size() != clauseSets.get(Occur.SHOULD).size()) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder()
+                .deDuplicateClauses(deDuplicateClauses())
             .setMinimumNumberShouldMatch(minimumNumberShouldMatch);
         for (Map.Entry<Query,Double> entry : shouldClauses.entrySet()) {
           Query query = entry.getKey();
@@ -412,6 +436,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
       }
       if (mustClauses.size() != clauseSets.get(Occur.MUST).size()) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder()
+                .deDuplicateClauses(deDuplicateClauses())
             .setMinimumNumberShouldMatch(minimumNumberShouldMatch);
         for (Map.Entry<Query,Double> entry : mustClauses.entrySet()) {
           Query query = entry.getKey();
@@ -447,7 +472,8 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
         if (must.getClass() == MatchAllDocsQuery.class) {
           // our single scoring clause matches everything: rewrite to a CSQ on the filter
           // ignore SHOULD clause for now
-          BooleanQuery.Builder builder = new BooleanQuery.Builder();
+          BooleanQuery.Builder builder = new BooleanQuery.Builder()
+                  .deDuplicateClauses(deDuplicateClauses());
           for (BooleanClause clause : clauses) {
             switch (clause.getOccur()) {
               case FILTER:
@@ -467,6 +493,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
 
           // now add back the SHOULD clauses
           builder = new BooleanQuery.Builder()
+                  .deDuplicateClauses(deDuplicateClauses())
             .setMinimumNumberShouldMatch(getMinimumNumberShouldMatch())
             .add(rewritten, Occur.MUST);
           for (Query query : clauseSets.get(Occur.SHOULD)) {
@@ -480,7 +507,8 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
 
     // Flatten nested disjunctions, this is important for block-max WAND to perform well
     if (minimumNumberShouldMatch <= 1) {
-      BooleanQuery.Builder builder = new BooleanQuery.Builder();
+      BooleanQuery.Builder builder = new BooleanQuery.Builder()
+              .deDuplicateClauses(deDuplicateClauses());
       builder.setMinimumNumberShouldMatch(minimumNumberShouldMatch);
       boolean actuallyRewritten = false;
       for (BooleanClause clause : clauses) {
@@ -585,7 +613,7 @@ public class BooleanQuery extends Query implements Iterable<BooleanClause> {
   }
 
   private boolean equalsTo(BooleanQuery other) {
-    return getMinimumNumberShouldMatch() == other.getMinimumNumberShouldMatch() && 
+    return getMinimumNumberShouldMatch() == other.getMinimumNumberShouldMatch() &&
            clauseSets.equals(other.clauseSets);
   }
 

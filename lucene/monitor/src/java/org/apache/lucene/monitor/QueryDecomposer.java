@@ -112,6 +112,7 @@ public class QueryDecomposer {
     Set<Query> rewrittenSubqueries = new HashSet<>(subqueries.size());
     for (Query subquery : subqueries) {
       BooleanQuery.Builder bq = new BooleanQuery.Builder();
+      bq.deDuplicateClauses(q.deDuplicateClauses());
       bq.add(subquery, BooleanClause.Occur.MUST);
       for (Query ex : exclusions) {
         bq.add(ex, BooleanClause.Occur.MUST_NOT);

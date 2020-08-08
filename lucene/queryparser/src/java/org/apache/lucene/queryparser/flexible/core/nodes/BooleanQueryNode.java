@@ -28,6 +28,8 @@ import java.util.List;
  */
 public class BooleanQueryNode extends QueryNodeImpl {
 
+  private boolean deduplicateClauses = true;
+
   /**
    * @param clauses
    *          - the query nodes to be and'ed
@@ -36,6 +38,15 @@ public class BooleanQueryNode extends QueryNodeImpl {
     setLeaf(false);
     allocate();
     set(clauses);
+  }
+
+  public BooleanQueryNode setDeduplicateClauses(boolean deduplicateClauses){
+    this.deduplicateClauses = deduplicateClauses;
+    return this;
+  }
+
+  public boolean deduplicateClauses(){
+    return this.deduplicateClauses;
   }
 
   @Override

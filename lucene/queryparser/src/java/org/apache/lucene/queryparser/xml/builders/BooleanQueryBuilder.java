@@ -46,7 +46,7 @@ public class BooleanQueryBuilder implements QueryBuilder {
   public Query getQuery(Element e) throws ParserException {
     BooleanQuery.Builder bq = new BooleanQuery.Builder();
     bq.setMinimumNumberShouldMatch(DOMUtils.getAttribute(e, "minimumNumberShouldMatch", 0));
-
+    bq.deDuplicateClauses(DOMUtils.getAttribute(e, "deDuplicateClauses", true)) ;
     NodeList nl = e.getChildNodes();
     final int nlLen = nl.getLength();
     for (int i = 0; i < nlLen; i++) {

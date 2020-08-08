@@ -52,6 +52,7 @@ public class BooleanQueryNodeBuilder implements StandardQueryBuilder {
     BooleanQueryNode booleanNode = (BooleanQueryNode) queryNode;
 
     BooleanQuery.Builder bQuery = new BooleanQuery.Builder();
+    bQuery.deDuplicateClauses(booleanNode.deduplicateClauses());
     List<QueryNode> children = booleanNode.getChildren();
 
     if (children != null) {
