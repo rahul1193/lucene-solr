@@ -22,6 +22,7 @@ import java.io.StringReader;
 import java.util.Vector;
 import java.util.Arrays;
 
+import org.apache.lucene.queryparser.flexible.core.nodes.NearQueryNode;
 import org.apache.lucene.queryparser.flexible.messages.Message;
 import org.apache.lucene.queryparser.flexible.messages.MessageImpl;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeParseException;
@@ -207,7 +208,7 @@ public class StandardSyntaxParser implements SyntaxParser, StandardSyntaxParserC
   final public QueryNode ConjQuery(CharSequence field) throws ParseException {
   QueryNode first, c;
   Vector<QueryNode> clauses = null;
-    first = ModClause(field);
+    first = NearQuery(field);
     label_3:
     while (true) {
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -219,7 +220,7 @@ public class StandardSyntaxParser implements SyntaxParser, StandardSyntaxParserC
         break label_3;
       }
       jj_consume_token(AND);
-      c = ModClause(field);
+      c = NearQuery(field);
      if (clauses == null) {
          clauses = new Vector<QueryNode>();
          clauses.addElement(first);
@@ -234,7 +235,50 @@ public class StandardSyntaxParser implements SyntaxParser, StandardSyntaxParserC
     throw new Error("Missing return statement in function");
   }
 
-// QueryNode Query(CharSequence field) :
+  final public QueryNode NearQuery(CharSequence field) throws ParseException {
+    QueryNode first, c;
+    Token fuzzySlop = null;
+    int f = 0;
+
+    Vector<QueryNode> clauses = null;
+    first = ModClause(field);
+    boolean ordered = false;
+    label_3:
+    while (true) {
+      switch ((jj_ntk == -1) ? jj_ntk() : jj_ntk) {
+        case NEAR:
+          fuzzySlop = jj_consume_token(NEAR);
+          f = Integer.parseInt(fuzzySlop.image.substring(5));
+          ;
+          break;
+        case ONEAR:
+          fuzzySlop = jj_consume_token(ONEAR);
+          f = Integer.parseInt(fuzzySlop.image.substring(6));
+          ordered = true;
+          break;
+        default:
+          jj_la1[4] = jj_gen;
+          break label_3;
+      }
+      c = ModClause(field);
+      if (clauses == null) {
+        clauses = new Vector<>();
+        clauses.addElement(first);
+      }
+      clauses.addElement(c);
+    }
+    if (clauses != null) {
+      if (true) {
+        return new NearQueryNode(clauses, f, ordered);
+      }
+    } else {
+      if (true)
+        return first;
+    }
+    throw new Error("Missing return statement in function");
+  }
+
+  // QueryNode Query(CharSequence field) :
 // {
 // List clauses = new ArrayList();
 //   List modifiers = new ArrayList();

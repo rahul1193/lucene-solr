@@ -20,8 +20,8 @@ package org.apache.lucene.queryparser.flexible.standard.parser;
 /** Token Manager. */
 public class StandardSyntaxParserTokenManager implements StandardSyntaxParserConstants
 {
+   public int flag = 0;
 
-  
 private final int jjStopStringLiteralDfa_2(int pos, long active0)
 {
    switch (pos)
@@ -110,6 +110,7 @@ private int jjMoveNfa_2(int startState, int curPos)
    jjnewStateCnt = 33;
    int i = 1;
    jjstateSet[0] = startState;
+   flag = 0;
    int kind = 0x7fffffff;
    for (;;)
    {
@@ -134,8 +135,13 @@ private int jjMoveNfa_2(int startState, int curPos)
                      if (kind > 7)
                         kind = 7;
                   }
-                  else if (curChar == 47)
+                  else if (curChar == 47 && flag == 0)
                      jjCheckNAddStates(0, 2);
+                  else if (curChar == 47 && (flag == 2 || flag == 3)) // Differentiating in NEAR/ and '/'
+                  {
+                    jjstateSet[jjnewStateCnt++] = 25;
+                    flag = 2;
+                  }
                   else if (curChar == 34)
                      jjCheckNAddStates(3, 5);
                   else if (curChar == 33)
@@ -195,8 +201,12 @@ private int jjMoveNfa_2(int startState, int curPos)
                case 25:
                   if ((0x3ff000000000000L & l) == 0L)
                      break;
-                  if (kind > 24)
-                     kind = 24;
+                 if (kind > 24 && flag == 2) // Support for NEAR kind
+                   kind = 34;
+                 else if (kind > 24 && flag == 3) // Support for ONEAR kind
+                   kind = 35;
+                 else if (kind > 24 && flag == 0)
+                   kind = 24;
                   jjAddStates(6, 7);
                   break;
                case 26:
@@ -219,7 +229,12 @@ private int jjMoveNfa_2(int startState, int curPos)
                   if ((0xffff7fffffffffffL & l) != 0L)
                      jjCheckNAddStates(0, 2);
                   break;
-               case 32:
+              case 31:
+                if(this.curChar == 47) {
+                  this.jjstateSet[this.jjnewStateCnt++] = 25;
+                }
+                break;
+              case 32:
                   if (curChar == 47 && kind > 25)
                      kind = 25;
                   break;
@@ -246,6 +261,7 @@ private int jjMoveNfa_2(int startState, int curPos)
                      if (kind > 24)
                         kind = 24;
                      jjstateSet[jjnewStateCnt++] = 25;
+                     flag = 0;
                   }
                   else if (curChar == 92)
                      jjCheckNAdd(22);
@@ -253,27 +269,64 @@ private int jjMoveNfa_2(int startState, int curPos)
                      jjstateSet[jjnewStateCnt++] = 11;
                   else if (curChar == 124)
                      jjstateSet[jjnewStateCnt++] = 8;
-                  else if (curChar == 79)
-                     jjstateSet[jjnewStateCnt++] = 6;
-                  else if (curChar == 65)
-                     jjstateSet[jjnewStateCnt++] = 2;
+                  else if (curChar == 79) {
+                    jjstateSet[jjnewStateCnt++] = 6;
+                    flag = 0;
+                  }
+                  else if (curChar == 65) {
+                    jjstateSet[jjnewStateCnt++] = 2;
+                    flag = 0;
+                  }
                   break;
                case 1:
-                  if (curChar == 68 && kind > 8)
-                     kind = 8;
+                  if (curChar == 68 && kind > 8) {
+                    kind = 8;
+                    flag = 0;
+                  }
                   break;
                case 2:
-                  if (curChar == 78)
-                     jjstateSet[jjnewStateCnt++] = 1;
+                  if (curChar == 78) {
+                    jjstateSet[jjnewStateCnt++] = 1;
+                    flag = 0;
+                  }
                   break;
                case 3:
                   if (curChar == 65)
                      jjstateSet[jjnewStateCnt++] = 2;
                   break;
-               case 6:
-                  if (curChar == 82 && kind > 9)
+              case 4:
+                if(this.curChar == 82 && flag != 3) {
+                  this.jjstateSet[34] = 6;
+                  flag = 2;
+                } else if (this.curChar == 82 && this.flag == 3){
+                  jjstateSet[jjnewStateCnt++] = 31;
+                }
+                break;
+              case 5:
+                if(this.curChar == 65) {
+                  this.jjstateSet[this.jjnewStateCnt++] = 4;
+                }
+                if(this.curChar == 69 && flag == 3) {
+                  this.jjstateSet[this.jjnewStateCnt++] = 11; // set state to 11 to follow the same steps as NEAR
+                }
+                break;
+              case 6:
+                  if (curChar == 82 && kind > 9 && flag == 0)
                      kind = 9;
-                  break;
+                  else if (curChar == 82 && kind > 9 && (flag == 2 || flag == 3)) //Support for 'R'
+                  {
+                    jjstateSet[jjnewStateCnt++] = 31;
+                  }
+                  else if (curChar == 78 && kind > 9 && flag == 0){
+                    jjstateSet[jjnewStateCnt++] = 11;
+                    flag = 3;
+                  }
+                  else if (curChar == 69)
+                  {
+                    jjstateSet[jjnewStateCnt++] = 3;
+                    flag = 2;
+                  }
+                break;
                case 7:
                   if (curChar == 79)
                      jjstateSet[jjnewStateCnt++] = 6;
@@ -293,7 +346,9 @@ private int jjMoveNfa_2(int startState, int curPos)
                case 11:
                   if (curChar == 79)
                      jjstateSet[jjnewStateCnt++] = 10;
-                  break;
+                  else if (curChar == 69)
+                    jjstateSet[jjnewStateCnt++] = 5;
+                 break;
                case 12:
                   if (curChar == 78)
                      jjstateSet[jjnewStateCnt++] = 11;
@@ -320,7 +375,9 @@ private int jjMoveNfa_2(int startState, int curPos)
                case 21:
                   if (curChar == 92)
                      jjCheckNAddTwoStates(22, 22);
-                  break;
+                  else if (curChar == 65 && flag == 0) // TO differentiate between 'A' in AND and 'A; in NEAR
+                    flag = 2;
+                 break;
                case 22:
                   if (kind > 23)
                      kind = 23;
@@ -396,7 +453,16 @@ private int jjMoveNfa_2(int startState, int curPos)
                   if (jjCanMove_1(hiByte, i1, i2, l1, l2))
                      jjAddStates(0, 2);
                   break;
-               default : break;
+              case 31:
+                if(this.curChar == 47) {
+                  this.jjstateSet[this.jjnewStateCnt++] = 25;
+                }
+                break;
+              case 32:
+                if(this.curChar == 47 && kind > 25) {
+                  kind = 25;
+                }
+              default : break;
             }
          } while(i != startsAt);
       }
@@ -694,7 +760,7 @@ private int jjMoveNfa_1(int startState, int curPos)
    }
 }
 static final int[] jjnextStates = {
-   29, 31, 32, 15, 16, 18, 25, 26, 0, 1, 2, 4, 5, 
+   29, 31, 32, 15, 16, 18, 25, 26, 0, 1, 2, 4, 5,
 };
 private static final boolean jjCanMove_0(int hiByte, int i1, int i2, long l1, long l2)
 {
@@ -735,9 +801,9 @@ private static final boolean jjCanMove_2(int hiByte, int i1, int i2, long l1, lo
 
 /** Token literal values. */
 public static final String[] jjstrLiteralImages = {
-"", null, null, null, null, null, null, null, null, null, null, "\53", "\55", 
-"\50", "\51", "\72", "\75", "\74", "\74\75", "\76", "\76\75", "\136", null, null, 
-null, null, "\133", "\173", null, "\124\117", "\135", "\175", null, null, };
+"", null, null, null, null, null, null, null, null, null, null, "\53", "\55",
+"\50", "\51", "\72", "\75", "\74", "\74\75", "\76", "\76\75", "\136", null, null,
+null, null, "\133", "\173", null, "\124\117", "\135", "\175", null, null, null, null, };
 
 /** Lexer state names. */
 public static final String[] lexStateNames = {
@@ -749,7 +815,7 @@ public static final String[] lexStateNames = {
 /** Lex State array. */
 public static final int[] jjnewLexState = {
    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, 
-   -1, 1, 1, 2, -1, 2, 2, -1, -1, 
+   -1, 1, 1, 2, -1, 2, 2, -1, -1, -1, -1,
 };
 static final long[] jjtoToken = {
    0x3ffffff01L, 
@@ -758,12 +824,13 @@ static final long[] jjtoSkip = {
    0x80L, 
 };
 protected CharStream input_stream;
-private final int[] jjrounds = new int[33];
-private final int[] jjstateSet = new int[66];
+private final int[] jjrounds = new int[34];
+private final int[] jjstateSet = new int[68];
 protected char curChar;
 /** Constructor. */
 public StandardSyntaxParserTokenManager(CharStream stream){
    input_stream = stream;
+  curLexState = 2;
 }
 
 /** Constructor. */
@@ -836,7 +903,7 @@ int jjmatchedPos;
 int jjmatchedKind;
 
 /** Get the next Token. */
-public Token getNextToken() 
+public Token getNextToken()
 {
   Token matchedToken;
   int curPos = 0;
@@ -883,6 +950,12 @@ public Token getNextToken()
        if (jjnewLexState[jjmatchedKind] != -1)
          curLexState = jjnewLexState[jjmatchedKind];
            return matchedToken;
+        } else if (this.jjmatchedKind == 34 || this.jjmatchedKind == 35) {  //Support for NEAR
+            matchedToken = this.jjFillToken();
+            if (jjnewLexState[this.jjmatchedKind] != -1) {
+              this.curLexState = jjnewLexState[this.jjmatchedKind];
+            }
+          return matchedToken;
         }
         else
         {

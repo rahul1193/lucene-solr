@@ -180,7 +180,7 @@ public class StandardQueryConfigHandler extends QueryConfigHandler {
    * Boolean Operator: AND or OR
    */
   public static enum Operator {
-    AND, OR;
+    AND, OR, NEAR
   }
 
   public StandardQueryConfigHandler() {
