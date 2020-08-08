@@ -363,7 +363,7 @@ public abstract class Analyzer implements Closeable {
    * {@link TokenStream} returned by
    * {@link Analyzer#tokenStream(String, Reader)}.
    */
-  public static final class TokenStreamComponents {
+  public static class TokenStreamComponents {
     /**
      * Original source of the tokens.
      */
@@ -414,7 +414,7 @@ public abstract class Analyzer implements Closeable {
      * @param reader
      *          a reader to reset the source component
      */
-    private void setReader(final Reader reader) {
+    protected void setReader(final Reader reader) {
       source.accept(reader);
     }
 

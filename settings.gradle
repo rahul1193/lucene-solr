@@ -17,6 +17,7 @@
 
 
 include "lucene:analysis:common"
+include "lucene:analysis:combo"
 include "lucene:analysis:icu"
 include "lucene:analysis:kuromoji"
 include "lucene:analysis:morfologik"

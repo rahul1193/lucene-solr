@@ -81,7 +81,7 @@ public final class PerFieldAnalyzerWrapper extends DelegatingAnalyzerWrapper {
   }
 
   @Override
-  protected Analyzer getWrappedAnalyzer(String fieldName) {
+  public Analyzer getWrappedAnalyzer(String fieldName) {
     Analyzer analyzer = fieldAnalyzers.get(fieldName);
     return (analyzer != null) ? analyzer : defaultAnalyzer;
   }
