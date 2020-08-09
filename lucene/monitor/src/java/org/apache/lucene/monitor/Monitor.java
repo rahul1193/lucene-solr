@@ -134,33 +134,6 @@ public class Monitor implements Closeable {
   }
 
   /**
-   * Statistics for the query cache and query index
-   */
-  public static class QueryCacheStats {
-
-    /**
-     * Total number of queries in the query index
-     */
-    public final int queries;
-
-    /**
-     * Total number of queries int the query cache
-     */
-    public final int cachedQueries;
-
-    /**
-     * Time the query cache was last purged
-     */
-    public final long lastPurged;
-
-    public QueryCacheStats(int queries, int cachedQueries, long lastPurged) {
-      this.queries = queries;
-      this.cachedQueries = cachedQueries;
-      this.lastPurged = lastPurged;
-    }
-  }
-
-  /**
    * Remove unused queries from the query cache.
    * <p>
    * This is normally called from a background thread at a rate set by configurePurgeFrequency().

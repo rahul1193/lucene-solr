@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.function.Supplier;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
@@ -63,6 +64,18 @@ abstract class DocumentBatch implements Closeable, Supplier<LeafReader> {
     }
   }
 
+  /**
+   *
+   * @return always creates multi document batch
+   */
+  public static DocumentBatch create(Analyzer analyzer, Codec codec, Document... docs){
+    if (docs.length == 0) {
+      throw new IllegalArgumentException("A DocumentBatch must contain at least one document");
+    } else {
+      return new MultiDocumentBatch(analyzer, docs);
+    }
+  }
+
   // Implementation of DocumentBatch for collections of documents
   private static class MultiDocumentBatch extends DocumentBatch {
 
@@ -70,8 +83,12 @@ abstract class DocumentBatch implements Closeable, Supplier<LeafReader> {
     private final LeafReader reader;
 
     MultiDocumentBatch(Analyzer analyzer, Document... docs) {
+      this(analyzer, Codec.getDefault(), docs);
+    }
+
+    MultiDocumentBatch(Analyzer analyzer, Codec codec, Document... docs) {
       assert(docs.length > 0);
-      IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+      IndexWriterConfig iwc = new IndexWriterConfig(analyzer).setCodec(codec);
       try (IndexWriter writer = new IndexWriter(directory, iwc)) {
         this.reader = build(writer, docs);
       } catch (IOException e) {

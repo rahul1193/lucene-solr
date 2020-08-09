@@ -37,15 +37,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
@@ -214,31 +206,31 @@ class QueryIndex implements Closeable {
 
   static class QueryTermFilter implements BiPredicate<String, BytesRef> {
 
-    private final Map<String, BytesRefHash> termsHash = new HashMap<>();
+    private final Map<String, Terms> terms = new HashMap<>();
+    private final IndexReader reader;
 
     QueryTermFilter(IndexReader reader) throws IOException {
-      for (LeafReaderContext ctx : reader.leaves()) {
-        for (FieldInfo fi : ctx.reader().getFieldInfos()) {
-          BytesRefHash terms = termsHash.computeIfAbsent(fi.name, f -> new BytesRefHash());
-          Terms t = ctx.reader().terms(fi.name);
-          if (t != null) {
-            TermsEnum te = t.iterator();
-            BytesRef term;
-            while ((term = te.next()) != null) {
-              terms.add(term);
-            }
-          }
-        }
-      }
+      this.reader = reader;
     }
 
     @Override
     public boolean test(String field, BytesRef term) {
-      BytesRefHash bytes = termsHash.get(field);
-      if (bytes == null) {
+      Terms terms = this.terms.computeIfAbsent(field, k -> {
+        try {
+          return MultiTerms.getTerms(reader, k);
+        } catch (Exception e){
+          throw new RuntimeException("failed to obtain terms for field : " + field);
+        }
+      });
+      if (terms == null) {
         return false;
       }
-      return bytes.find(term) != -1;
+      try {
+        TermsEnum iterator = terms.iterator();
+        return iterator.seekExact(term);
+      } catch (Exception e){
+        throw new RuntimeException("failed to test terms for field : " + field + ", term : " + term.utf8ToString());
+      }
     }
   }
 
@@ -373,7 +365,7 @@ class QueryIndex implements Closeable {
     commit(Collections.emptyList());
   }
 
-  interface QueryCollector {
+  public interface QueryCollector {
 
     void matchQuery(String id, QueryCacheEntry query, DataValues dataValues) throws IOException;
 

@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.lucene.search.Query;
 
-class QueryCacheEntry {
+public class QueryCacheEntry {
 
   /**
    * The (possibly partial due to decomposition) query
@@ -62,6 +62,22 @@ class QueryCacheEntry {
       upto++;
     }
     return cacheEntries;
+  }
+
+  public Query getMatchQuery() {
+    return matchQuery;
+  }
+
+  public String getCacheId() {
+    return cacheId;
+  }
+
+  public String getQueryId() {
+    return queryId;
+  }
+
+  public Map<String, String> getMetadata() {
+    return metadata;
   }
 
   @Override
